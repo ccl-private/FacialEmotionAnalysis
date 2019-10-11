@@ -1,5 +1,6 @@
 # Importing libraries
 import pandas as pd
+import dlib
 import numpy as np
 import cv2
 import os
@@ -13,7 +14,7 @@ mod_dir = "/".join(os.getcwd().split("/")[0:-1] + ['model/'])
 cap = cv2.VideoCapture(0)
 
 # Importing models
-face_cascade = cv2.CascadeClassifier(mod_dir+'haarcascade_frontalface_default.xml')
+face_detector = dlib.get_frontal_face_detector()
 eyes_cascade = eye_cascade = cv2.CascadeClassifier(mod_dir+'haarcascade_eye.xml')
 emotions = load_model(mod_dir + 'gpu_mini_XCEPTION.63-0.64.hdf5')
 
@@ -25,18 +26,20 @@ while(True):
     ret, frame = cap.read()
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     # detecting faces
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    faces = face_detector(gray, 0)
 
     # Getting boundaries for the faces
-    for (x,y,w,h) in faces:
-        cv2.rectangle(frame,(x,y),(x+w,y+h),(255,0,0),3)
+    for j in enumerate(faces):
+        k, d = j
+        x, y, w, h = (d.left(), d.top(), d.right() - d.left(), d.bottom() - d.top())
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 3)
         roi_gray = gray[y:y+h, x:x+w]
         roi_color = frame[y:y+h, x:x+w]
         # Detecting eyes inside every face
         eyes = eye_cascade.detectMultiScale(roi_gray)
         # Getting boundaries for every eye
-        for (ex,ey,ew,eh) in eyes:
-            cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+        # for (ex,ey,ew,eh) in eyes:
+        #     cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
         roi_gray = cv2.resize(roi_gray, (48,48))
         face_emo = pre.preprocess_predict(roi_gray)
         emotion = emotions.predict(face_emo)
